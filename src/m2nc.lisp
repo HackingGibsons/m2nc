@@ -1,9 +1,14 @@
 (in-package :m2nc)
 
+(defparameter *write-buf* (make-sequence 'string 8 :initial-element #\0))
+
 (defun chunk-input (handler request stream)
-  (loop for line = (read-line stream nil)
-     until (eq line nil)
-     do (m2cl:handler-send-http-chunk handler line :request request :binary-body-p t)))
+  (let ((length (length *write-buf*)))
+    (loop for pos = (read-sequence *write-buf* stream)
+       until (= pos 0) ;; when pos is 0 it means it failed to update any elements in the sequence
+       do (m2cl:handler-send-http-chunk handler (if (< pos length)
+                                                    (subseq *write-buf* 0 pos)
+                                                    *write-buf*) :request request))))
 
 (defun m2nc-input-handler (handler input-file-path content-type)
   (let ((request (m2cl:handler-receive handler)))
