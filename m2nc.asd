@@ -1,6 +1,6 @@
 ;; -*- mode: Lisp;  -*-
 (asdf:defsystem #:m2nc
-  :depends-on (#:m2cl #:unix-options #:cl-ppcre)
+  :depends-on (#:m2cl #:unix-options)
   :components ((:static-file "m2nc.asd")
                (:module "src"
                         :components ((:file "package")
