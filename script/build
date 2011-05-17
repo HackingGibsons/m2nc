@@ -1,0 +1,37 @@
+#!/usr/bin/env sbcl --script
+;; -*- mode: Lisp;  -*-
+;; Load an RC if we can find it
+(let ((rc (probe-file #P"~/.sbclrc")))
+  (when rc (load rc)))
+
+;; Just to be clean
+(defpackage #:m2nc-builder (:use #:cl))
+(in-package :m2nc-builder)
+
+;; QL deps
+(ql:quickload :buildapp)
+(ql:quickload :external-program)
+
+;; State
+(defvar *rootdir* (truename (merge-pathnames (make-pathname :directory '(:relative ".."))
+                                             (make-pathname :directory (pathname-directory *load-pathname*)))))
+(defvar *scriptdir* (pathname-directory *load-pathname*))
+(defvar *bindir* (ensure-directories-exist (merge-pathnames
+                                            (make-pathname :directory '(:relative "bin"))
+                                            *rootdir*)))
+(defvar *buildapp* (namestring (merge-pathnames (make-pathname :name "buildapp")
+                                                *bindir*)))
+(defvar *target* (namestring (merge-pathnames #P"m2nc"
+                                              *bindir*)))
+(buildapp:build-buildapp (namestring *buildapp*))
+
+;; Builder
+(external-program:run *buildapp* `("--output" ,*target*
+                                   "--load" "~/.sbclrc"
+                                   "--asdf-path" ,*rootdir*
+                                   "--load-system" "m2nc"
+                                   "--eval" "(defun %buildapp-entry (argv)
+                                                (sb-ext:disable-debugger)
+                                                (m2nc-cli:start-handler-with-options argv))"
+                                   "--entry"  "%buildapp-entry")
+                      :output t :error t :input t)
