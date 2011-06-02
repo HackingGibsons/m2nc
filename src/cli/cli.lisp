@@ -1,4 +1,13 @@
 (in-package :m2nc-cli)
+(log5:defoutput human-time (multiple-value-bind (second minute hour date month year)
+                               (decode-universal-time (get-universal-time))
+                             (format nil "[~A-~A-~A ~A:~A:~A]" year month date hour minute second)))
+(defun setup-logger ()
+  (start-sender 'default
+                (stream-sender :location *error-output*)
+                :category-spec '(dribble+)
+                :output-spec '(human-time message)))
+(setup-logger)
 
 (defun read-dot-m2nc ()
   (let ((dot-m2nc (make-pathname :name ".m2nc")))
@@ -28,11 +37,17 @@
 
 (defun start-handler-with-options (args) 
   (unix-options:with-cli-options (args t)
-      (unix-options:&PARAMETERS (sub "sub address" ) (pub "pub address") (type "Content-Type header is set to this value.") unix-options:&free file-path)
+      ((quiet "Limit verbosity") unix-options:&PARAMETERS (sub "sub address" ) 
+                   (pub "pub address") 
+                   (type "Content-Type header is set to this value.")
+                   unix-options:&free file-path)
     (unless (<= (length file-path) 2) 
       (format *standard-output* "A single file path was expected, but multiple were passed.~%")
       (sb-ext:quit :unix-status 1))
     (multiple-value-bind (sub pub type file-path) (process-arguments sub pub type (cdr file-path))
+      (unless quiet
+          (stop-all-senders)
+          (setup-logger))
       (if (listp file-path)
           (setf file-path (cond ((string-equal "-" (car file-path)) *default-input*)
                                 (t (make-pathname :name (car file-path))))))
