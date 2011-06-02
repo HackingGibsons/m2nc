@@ -1,6 +1,6 @@
 (in-package :m2nc)
 
-(defparameter *write-buf* (make-sequence 'string 8 :initial-element #\0))
+(defparameter *write-buf* (make-sequence 'string 8192 :initial-element #\0))
 
 (defun chunk-input (handler request stream)
   (let ((length (length *write-buf*)))
