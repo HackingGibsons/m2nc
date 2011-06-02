@@ -19,6 +19,7 @@
     (cond ((eql input-file-path *default-input*) (chunk-input handler request input-file-path))
           ((pathnamep input-file-path) (with-open-file (input-stream input-file-path)
                                          (chunk-input handler request input-stream))))
+    (log-for (trace dribble) "Sending last chunk to Connection:~A" (m2cl:request-connection-id request))
     (m2cl:handler-send-http-chunked-finish handler :request request)))
 
 
